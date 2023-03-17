@@ -3,6 +3,7 @@
 #define CATMULL_CLARK_SUBDIVITION_MODEL_H_
 
 #include <exception>
+#include <map>
 #include <list>
 #include <set>
 #include <string>
@@ -30,9 +31,10 @@ namespace CatmullClarkSubdivision
 
     struct Vertex
     {
+        Vertex() : Position{ glm::vec3(0.0f) }, TexCoord{ glm::vec2(0.0f) } { }
+
         glm::vec3 Position;
-        glm::vec3 Normal;
-        glm::vec2 TextureCoordinate;
+        glm::vec2 TexCoord;
     };
 
     struct Texture
@@ -45,51 +47,11 @@ namespace CatmullClarkSubdivision
     struct Mesh
     {
         std::vector<Vertex>     Vertices;
-        std::vector<glm::uvec3> Triangles;
         std::vector<glm::uvec4> Quads;
         std::list<Texture>      Textures;
         unsigned VAO;
         unsigned VBO;
         unsigned EBO;
-        bool IsQuads;
-    };
-
-    struct VertexRecord
-    {
-        glm::vec3        Position;
-        std::vector<int> Edges;
-        std::vector<int> Faces;
-    };
-
-    struct EdgeRecord
-    {
-        int LowVertex  = -1;
-        int HighVertex = -1;
-        int FaceCount  = 0;
-        int Faces[2]   = { -1, -1 };
-    };
-
-    struct FaceRecord
-    {
-        bool IsQuad = false;
-        int Vertices[4] = { -1, -1, -1, -1 };
-        int Edges[4]    = { -1, -1, -1, -1 };
-    };
-
-    class ModelConverter
-    {
-    public:
-        std::vector<VertexRecord> Vertices;
-        std::vector<EdgeRecord>   Edges;
-        std::vector<FaceRecord>   Faces;
-
-        void moveVertex(int vertexIndex, const glm::vec3& newPosition);
-        int getVertexIndex(const glm::vec3& position);
-        int getEdgeIndex(const glm::uvec2& vertexPair);
-
-    private:
-        std::unordered_map<std::string, int> m_positionToVertex;
-        std::unordered_map<std::string, int> m_vertexPairToEdge;
     };
 
     class Model
@@ -107,9 +69,7 @@ namespace CatmullClarkSubdivision
         void draw(EModelViewType viewType);
 
         const size_t getVerticesCount(EModelViewType viewType) const;
-        const size_t getTrianglesCount(EModelViewType viewType) const;
         const size_t getQuadsCount(EModelViewType viewType) const;
-        const bool isQuads(EModelViewType viewType) const;
 
         const float getScale() const  { return m_scale; }
         const float getAngleX() const { return m_rotation.x; }
@@ -133,8 +93,9 @@ namespace CatmullClarkSubdivision
         std::list<Mesh> m_subdividedMeshes;
         std::set<const char*> m_loadedTextures;
 
-        ModelConverter meshToModel(const Mesh& mesh);
-        void applyCatmullClarkSubdivisionOnce(ModelConverter oldModel, Mesh& newMesh);
+        void applySubdivision(Mesh& oldMesh, Mesh& newMesh);
+        int32_t addNewVertex(Mesh& mesh, Vertex& vertex);
+        std::string vec3ToString(const glm::vec3& vec3);
 
         Shader m_shader;
 

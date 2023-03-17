@@ -57,15 +57,8 @@ void Engine::init()
 
     glEnable(GL_DEPTH_TEST);
 
-    addModel("resources\\cube.obj", "Cube");
-    addModel("resources\\bunny.obj", "Bunny");
-    m_models["Bunny"]->scale(0.05f);
-
-    addModel("resources\\head.obj", "Head");
-    addModel("resources\\torus.obj", "Torus");
-    addModel("resources\\banana\\banana.obj", "Banana");
-    addModel("resources\\hamburger\\hamburger.obj", "Hamburger");
-    addModel("resources\\ice_cream\\ice_cream.obj", "IceCream");
+    addModel("resources\\cube\\cube.obj", "Cube");
+    addModel("resources\\torus\\torus.obj", "Torus");
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -211,13 +204,7 @@ void Engine::update()
         ImGui::Separator();
 
         ImGui::Text("Vertices: %d", m_models[values[idx]]->getVerticesCount(m_type));
-        bool isQuads = m_models[values[idx]]->isQuads(m_type);
-        ImGui::Text("Is Quads: %s", isQuads ? "True" : "False");
-
-        if (isQuads)
-            ImGui::Text("Quads: %d", m_models[values[idx]]->getQuadsCount(m_type));
-        else
-            ImGui::Text("Triangles: %d", m_models[values[idx]]->getTrianglesCount(m_type));
+        ImGui::Text("Quads: %d", m_models[values[idx]]->getQuadsCount(m_type));
 
         ImGui::End();
     }

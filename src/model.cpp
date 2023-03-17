@@ -1,5 +1,6 @@
 #include "model.h"
 
+#include <algorithm>
 #include <exception>
 #include <fstream>
 #include <iostream>
@@ -61,10 +62,7 @@ void Model::loadModel(const char* path, glm::mat4 projection, glm::mat4 view)
     // read file via ASSIMP
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path, aiProcess_JoinIdenticalVertices |
-                                                   aiProcess_Triangulate           |
-                                                   aiProcess_GenSmoothNormals      |
-                                                   aiProcess_FlipUVs               |
-                                                   aiProcess_CalcTangentSpace);
+                                                   aiProcess_FlipUVs);
 
     // check for errors
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
@@ -148,10 +146,7 @@ void Model::draw(EModelViewType viewType)
         // draw mesh
         glBindVertexArray(mesh.VAO);
 
-        if (mesh.IsQuads)
-            glDrawElements(GL_QUADS, 4 * static_cast<unsigned>(mesh.Quads.size()), GL_UNSIGNED_INT, 0);
-        else
-            glDrawElements(GL_TRIANGLES, 3 * static_cast<unsigned>(mesh.Triangles.size()), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_QUADS, 4 * static_cast<unsigned>(mesh.Quads.size()), GL_UNSIGNED_INT, 0);
 
         glBindVertexArray(0);
 
@@ -186,32 +181,29 @@ void Model::processMesh(aiMesh* mesh, const aiScene* scene)
         Vertex vertex { };
         vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
 
-        // normals
-        if (mesh->HasNormals())
-            vertex.Normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-
         // texture coordinates
         if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
         {
             // a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
             // use models where a vertex can have multiple texture coordinates so we always take the first set (0).
-            vertex.TextureCoordinate = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+            vertex.TexCoord = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
         }
         else
-            vertex.TextureCoordinate = glm::vec2(0.0f, 0.0f);
+            vertex.TexCoord = glm::vec2(-1.0f);
 
         newMesh.Vertices.push_back(vertex);
     }
-
-    newMesh.IsQuads = false;
 
     // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
     for (unsigned i = 0; i < mesh->mNumFaces; ++i)
     {
         aiFace face = mesh->mFaces[i];
 
+        if (face.mNumIndices != 4)
+            throw std::exception(std::string("Model doesn't have correct number of indices: ").append(std::to_string(face.mNumIndices)).c_str());
+
         // retrieve all indices of the face and store them in the indices vector
-        newMesh.Triangles.emplace_back(glm::uvec3(face.mIndices[0], face.mIndices[1], face.mIndices[2]));
+        newMesh.Quads.emplace_back(glm::uvec4(face.mIndices[0], face.mIndices[1], face.mIndices[2], face.mIndices[3]));
     }
 
     // process materials
@@ -249,49 +241,21 @@ void Model::processMesh(aiMesh* mesh, const aiScene* scene)
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newMesh.EBO);
 
-    if (newMesh.IsQuads)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh.Quads.size() * sizeof(glm::uvec4), newMesh.Quads.data(), GL_STATIC_DRAW);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh.Triangles.size() * sizeof(glm::uvec3), newMesh.Triangles.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh.Quads.size() * sizeof(glm::uvec4), newMesh.Quads.data(), GL_STATIC_DRAW);
 
     // set the vertex attribute pointers
     // vertex Positions
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
 
-    // vertex normals
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-
     // vertex texture coords
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TextureCoordinate));
-/*
-    // vertex tangent
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoord));
 
-    // vertex bitangent
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
-
-    // ids
-    glEnableVertexAttribArray(5);
-    glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, BoneIds));
-
-    // weights
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Weights));
-    */
     glBindVertexArray(0);
 
-    Mesh subdivMesh = newMesh;
-    subdivMesh.Vertices.clear();
-    subdivMesh.Triangles.clear();
-    subdivMesh.Quads.clear();
-    subdivMesh.IsQuads = true;
-
-    applyCatmullClarkSubdivisionOnce(meshToModel(newMesh), subdivMesh);
+    Mesh subdivMesh { };
+    applySubdivision(newMesh, subdivMesh);
 
     // create buffers/arrays
     glGenVertexArrays(1, &subdivMesh.VAO);
@@ -309,23 +273,16 @@ void Model::processMesh(aiMesh* mesh, const aiScene* scene)
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subdivMesh.EBO);
 
-    if (subdivMesh.IsQuads)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, subdivMesh.Quads.size() * sizeof(glm::uvec4), subdivMesh.Quads.data(), GL_STATIC_DRAW);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, subdivMesh.Triangles.size() * sizeof(glm::uvec3), subdivMesh.Triangles.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, subdivMesh.Quads.size() * sizeof(glm::uvec4), subdivMesh.Quads.data(), GL_STATIC_DRAW);
 
     // set the vertex attribute pointers
     // vertex Positions
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
 
-    // vertex normals
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-
     // vertex texture coords
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TextureCoordinate));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoord));
 
     glBindVertexArray(0);
 
@@ -344,13 +301,19 @@ std::list<Texture> Model::loadMaterialTextures(aiMaterial* material, aiTextureTy
         aiString texturePath;
         material->GetTexture(type, i, &texturePath);
 
+        std::string path = texturePath.C_Str();
+        if (path.find_last_of('/') != std::string::npos)
+            path = path.substr(path.find_last_of('/') + 1);
+        else if (path.find_last_of('\\') != std::string::npos)
+            path = path.substr(path.find_last_of('\\') + 1);
+
         // check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
         if (m_loadedTextures.find(texturePath.C_Str()) == m_loadedTextures.end())
         {   // if texture hasn't been loaded already, load it
             Texture texture;
-            texture.Id = textureFromFile(texturePath.C_Str());
+            texture.Id = textureFromFile(path.c_str());
             texture.Type = type;
-            texture.Path = texturePath.C_Str();
+            texture.Path = path.c_str();
             textures.push_back(texture);
             m_loadedTextures.insert(texturePath.C_Str()); // store it as texture loaded for entire model, to ensure we won't unnecessary load duplicate textures.
         }
@@ -398,230 +361,178 @@ unsigned Model::textureFromFile(const char* path)
     return textureID;
 }
 
-ModelConverter Model::meshToModel(const Mesh& mesh)
+void Model::applySubdivision(Mesh& oldMesh, Mesh& newMesh)
 {
-    ModelConverter model;
+    std::map<std::string, glm::vec3> adjustedEdges;
+    std::map<std::string, std::set<std::string>> vertexAndEdges;
+    std::map<std::string, std::set<int32_t>> vertexAndFaces;
 
-    size_t count = mesh.IsQuads ? mesh.Quads.size() : mesh.Triangles.size();
+    std::map<std::string, glm::vec3> stringToVec3;
 
-    for (size_t i = 0; i < count; ++i)
+    for (const glm::uvec4& quad : oldMesh.Quads)
     {
-        int vertexCount = mesh.IsQuads ? 4 : 3;
-        int vertexIndices[4] = { -1, -1, -1, -1 };
+        size_t a = newMesh.Vertices.size();
+        newMesh.Vertices.emplace_back(oldMesh.Vertices[quad.x]);
+        size_t b = newMesh.Vertices.size();
+        newMesh.Vertices.emplace_back(oldMesh.Vertices[quad.y]);
+        size_t c = newMesh.Vertices.size();
+        newMesh.Vertices.emplace_back(oldMesh.Vertices[quad.z]);
+        size_t d = newMesh.Vertices.size();
+        newMesh.Vertices.emplace_back(oldMesh.Vertices[quad.w]);
 
-        if (mesh.IsQuads)
+        Vertex face;
+
+        face.Position = 0.25f * (oldMesh.Vertices[quad.x].Position +
+                                 oldMesh.Vertices[quad.y].Position +
+                                 oldMesh.Vertices[quad.z].Position +
+                                 oldMesh.Vertices[quad.w].Position);
+
+        face.TexCoord = 0.25f * (oldMesh.Vertices[quad.x].TexCoord +
+                                 oldMesh.Vertices[quad.y].TexCoord +
+                                 oldMesh.Vertices[quad.z].TexCoord +
+                                 oldMesh.Vertices[quad.w].TexCoord);
+
+        Vertex ab;
+
+        ab.Position = 0.5f * (oldMesh.Vertices[quad.x].Position + oldMesh.Vertices[quad.y].Position);
+        ab.TexCoord = 0.5f * (oldMesh.Vertices[quad.x].TexCoord + oldMesh.Vertices[quad.y].TexCoord);
+
+        int32_t abIndex = addNewVertex(newMesh, ab);
+
+        if (abIndex == -1)
+            throw std::exception("Can't add new AB Vertex");
+
+        Vertex bc;
+
+        bc.Position = 0.5f * (oldMesh.Vertices[quad.y].Position + oldMesh.Vertices[quad.z].Position);
+        bc.TexCoord = 0.5f * (oldMesh.Vertices[quad.y].TexCoord + oldMesh.Vertices[quad.z].TexCoord);
+
+        int32_t bcIndex = addNewVertex(newMesh, bc);
+
+        if (bcIndex == -1)
+            throw std::exception("Can't add new BC Vertex");
+
+        Vertex cd;
+
+        cd.Position = 0.5f * (oldMesh.Vertices[quad.z].Position + oldMesh.Vertices[quad.w].Position);
+        cd.TexCoord = 0.5f * (oldMesh.Vertices[quad.z].TexCoord + oldMesh.Vertices[quad.w].TexCoord);
+
+        int32_t cdIndex = addNewVertex(newMesh, cd);
+
+        if (cdIndex == -1)
+            throw std::exception("Can't add new CD Vertex");
+
+        Vertex da;
+
+        da.Position = 0.5f * (oldMesh.Vertices[quad.w].Position + oldMesh.Vertices[quad.x].Position);
+        da.TexCoord = 0.5f * (oldMesh.Vertices[quad.w].TexCoord + oldMesh.Vertices[quad.x].TexCoord);
+
+        int32_t daIndex = addNewVertex(newMesh, da);
+
+        if (daIndex == -1)
+            throw std::exception("Can't add new DA Vertex");
+
+        int32_t faceIndex = addNewVertex(newMesh, face);
+
+        if (faceIndex == -1)
+            throw std::exception("Can't add new Face Vertex");
+
+        newMesh.Quads.emplace_back(glm::uvec4(daIndex, a, abIndex, faceIndex));
+        newMesh.Quads.emplace_back(glm::uvec4(abIndex, b, bcIndex, faceIndex));
+        newMesh.Quads.emplace_back(glm::uvec4(bcIndex, c, cdIndex, faceIndex));
+        newMesh.Quads.emplace_back(glm::uvec4(cdIndex, d, daIndex, faceIndex));
+
+        std::string aPosStr = vec3ToString(oldMesh.Vertices[quad.x].Position);
+        std::string bPosStr = vec3ToString(oldMesh.Vertices[quad.y].Position);
+        std::string cPosStr = vec3ToString(oldMesh.Vertices[quad.z].Position);
+        std::string dPosStr = vec3ToString(oldMesh.Vertices[quad.w].Position);
+
+        std::string abPosStr = vec3ToString(ab.Position);
+        std::string bcPosStr = vec3ToString(bc.Position);
+        std::string cdPosStr = vec3ToString(cd.Position);
+        std::string daPosStr = vec3ToString(da.Position);
+
+        stringToVec3[abPosStr] = ab.Position;
+        stringToVec3[bcPosStr] = bc.Position;
+        stringToVec3[cdPosStr] = cd.Position;
+        stringToVec3[daPosStr] = da.Position;
+
+        adjustedEdges[abPosStr] += 0.25f * face.Position;
+        vertexAndEdges[aPosStr].emplace(abPosStr);
+        vertexAndFaces[aPosStr].emplace(faceIndex);
+        vertexAndEdges[bPosStr].emplace(abPosStr);
+        vertexAndFaces[bPosStr].emplace(faceIndex);
+
+        adjustedEdges[bcPosStr] += 0.25f * face.Position;
+        vertexAndEdges[bPosStr].emplace(bcPosStr);
+        vertexAndFaces[bPosStr].emplace(faceIndex);
+        vertexAndEdges[cPosStr].emplace(bcPosStr);
+        vertexAndFaces[cPosStr].emplace(faceIndex);
+
+        adjustedEdges[cdPosStr] += 0.25f * face.Position;
+        vertexAndEdges[cPosStr].emplace(cdPosStr);
+        vertexAndFaces[cPosStr].emplace(faceIndex);
+        vertexAndEdges[dPosStr].emplace(cdPosStr);
+        vertexAndFaces[dPosStr].emplace(faceIndex);
+
+        adjustedEdges[daPosStr] += 0.25f * face.Position;
+        vertexAndEdges[dPosStr].emplace(daPosStr);
+        vertexAndFaces[dPosStr].emplace(faceIndex);
+        vertexAndEdges[aPosStr].emplace(daPosStr);
+        vertexAndFaces[aPosStr].emplace(faceIndex);
+    }
+
+    for (Vertex& vertex : newMesh.Vertices)
+    {
+        std::string posStr = vec3ToString(vertex.Position);
+
+        if (adjustedEdges.count(posStr))
+            vertex.Position = 0.5f * vertex.Position + adjustedEdges[posStr];
+
+        if (vertexAndEdges.count(posStr))
         {
-            vertexIndices[0] = model.getVertexIndex(mesh.Vertices[mesh.Quads[i].x].Position);
-            vertexIndices[1] = model.getVertexIndex(mesh.Vertices[mesh.Quads[i].y].Position);
-            vertexIndices[2] = model.getVertexIndex(mesh.Vertices[mesh.Quads[i].z].Position);
-            vertexIndices[3] = model.getVertexIndex(mesh.Vertices[mesh.Quads[i].w].Position);
-        }
-        else
-        {
-            vertexIndices[0] = model.getVertexIndex(mesh.Vertices[mesh.Triangles[i].x].Position);
-            vertexIndices[1] = model.getVertexIndex(mesh.Vertices[mesh.Triangles[i].y].Position);
-            vertexIndices[2] = model.getVertexIndex(mesh.Vertices[mesh.Triangles[i].z].Position);
-        }
+            int n = static_cast<int>(vertexAndFaces[posStr].size());
+            float m3 = static_cast<float>(n - 3) / n;
+            float m2 = 2.0f / n;
+            float m1 = 1.0f / n;
 
-        int edgeCount = vertexCount;
-        int edgeIndices[4] = { -1, -1, -1, -1 };
+            glm::vec3 faceAvg = glm::vec3(0.0f);
+            for (int32_t posId : vertexAndFaces[posStr])
+                faceAvg += newMesh.Vertices[posId].Position;
+            faceAvg /= vertexAndFaces[posStr].size();
 
-        for (int i = 0; i < edgeCount; ++i)
-        {
-            int startVertex = vertexIndices[i];
-            int endVertex = vertexIndices[(i + 1) % vertexCount];
-            int edgeIndex = model.getEdgeIndex({ startVertex, endVertex });
+            glm::vec3 edgeAvg = glm::vec3(0.0f);
+            for (const std::string& str : vertexAndEdges[posStr])
+                edgeAvg += stringToVec3[str];
+            edgeAvg /= vertexAndEdges[posStr].size();
 
-            edgeIndices[i] = edgeIndex;
-
-            if (startVertex < endVertex)
-            {
-                model.Vertices[startVertex].Edges.push_back(edgeIndex);
-                model.Vertices[endVertex].Edges.push_back(edgeIndex);
-            }
-        }
-
-        FaceRecord newFaceRecord;
-        newFaceRecord.IsQuad = mesh.IsQuads;
-
-        for (int i = 0; i < vertexCount; ++i)
-            newFaceRecord.Vertices[i] = vertexIndices[i];
-
-        for (int i = 0; i < edgeCount; ++i)
-            newFaceRecord.Edges[i] = edgeIndices[i];
-
-        int faceIndex = static_cast<int>(model.Faces.size());
-        model.Faces.push_back(newFaceRecord);
-
-        for (int i = 0; i < vertexCount; ++i)
-        {
-            auto& vertexRecord = model.Vertices[vertexIndices[i]];
-            vertexRecord.Faces.push_back(faceIndex);
-        }
-
-        for (int i = 0; i < edgeCount; ++i)
-        {
-            EdgeRecord& edgeRecord = model.Edges[edgeIndices[i]];
-            if (edgeRecord.FaceCount >= 2)
-                throw std::exception("topology error: edge.faceCount > 2");
-
-            edgeRecord.Faces[edgeRecord.FaceCount++] = faceIndex;
+            vertex.Position = m1 * faceAvg + m2 * edgeAvg + m3 * vertex.Position;
         }
     }
 
-    return model;
+    int test = 0;
 }
 
-void Model::applyCatmullClarkSubdivisionOnce(ModelConverter oldModel, Mesh& newMesh)
+int32_t Model::addNewVertex(Mesh& mesh, Vertex& vertex)
 {
-    std::vector<glm::vec3> facePoints(oldModel.Faces.size());
-    for (size_t i = 0; i < facePoints.size(); ++i)
+    int32_t index = -1;
+    auto pos = std::find_if(mesh.Vertices.begin(), mesh.Vertices.end(),
+        [&vertex](const Vertex& v) { return v.Position == vertex.Position && v.TexCoord == vertex.TexCoord; });
+
+    if (pos == mesh.Vertices.end())
     {
-        FaceRecord& f = oldModel.Faces[i];
-        int vertexCount = f.IsQuad ? 4 : 3;
-
-        glm::vec3 vertexSum = glm::vec3(0.0f);
-
-        for (int j = 0; j < vertexCount; ++j)
-            vertexSum += oldModel.Vertices[f.Vertices[j]].Position;
-
-        facePoints[i] = vertexSum / static_cast<float>(vertexCount);
+        index = static_cast<int32_t>(mesh.Vertices.size());
+        mesh.Vertices.emplace_back(vertex);
     }
+    else
+        index = static_cast<int32_t>(pos - mesh.Vertices.begin());
 
-    std::vector<glm::vec3> edgePoints(oldModel.Edges.size());
-    for (size_t i = 0; i < oldModel.Edges.size(); ++i)
-    {
-        EdgeRecord& e = oldModel.Edges[i];
-        if (e.FaceCount != 2)
-        {
-            edgePoints[i] = 0.5f * (
-                oldModel.Vertices[e.LowVertex].Position +
-                oldModel.Vertices[e.HighVertex].Position);
-        }
-        else
-        {
-            edgePoints[i] = 0.25f * (
-                oldModel.Vertices[e.LowVertex].Position +
-                oldModel.Vertices[e.HighVertex].Position +
-                facePoints[e.Faces[0]] + facePoints[e.Faces[1]]);
-        }
-    }
+    return index;
+}
 
-    std::vector<glm::vec3> oldPositions;
-    oldPositions.reserve(oldModel.Vertices.size());
-
-    for (auto& v : oldModel.Vertices)
-        oldPositions.push_back(v.Position);
-
-    for (size_t i = 0; i < oldModel.Vertices.size(); ++i)
-    {
-        VertexRecord& v = oldModel.Vertices[i];
-
-        int n = static_cast<int>(v.Faces.size());
-        float m1 = static_cast<float>(n - 3) / n;
-        float m2 = 1.0f / n;
-        float m3 = 2.0f / n;
-
-        glm::vec3 avgFacePosition = glm::vec3(0.0f);
-        for (auto fi : v.Faces)
-            avgFacePosition += facePoints[fi];
-
-        avgFacePosition /= static_cast<float>(n);
-
-        glm::vec3 avgEdgeMid = glm::vec3(0.0f);
-
-        for (auto edgeIndex : v.Edges)
-        {
-            EdgeRecord& edge = oldModel.Edges[edgeIndex];
-            avgEdgeMid += 0.5f * (oldPositions[edge.LowVertex] + oldPositions[edge.HighVertex]);
-        }
-
-        avgEdgeMid /= static_cast<float>(v.Edges.size());
-
-        glm::vec3 newPosition = m1 * oldPositions[i] + m2 * avgFacePosition + m3 * avgEdgeMid;
-        oldModel.moveVertex(static_cast<int>(i), newPosition);
-    }
-
-    for (size_t fi = 0; fi < oldModel.Faces.size(); ++fi)
-    {
-        FaceRecord& face = oldModel.Faces[fi];
-
-        if (face.IsQuad)
-        {
-            glm::vec3 va = oldModel.Vertices[face.Vertices[0]].Position;
-            glm::vec3 vb = oldModel.Vertices[face.Vertices[1]].Position;
-            glm::vec3 vc = oldModel.Vertices[face.Vertices[2]].Position;
-            glm::vec3 vd = oldModel.Vertices[face.Vertices[3]].Position;
-
-            glm::vec3 eab = edgePoints[oldModel.getEdgeIndex({ face.Vertices[0], face.Vertices[1] })];
-            glm::vec3 ebc = edgePoints[oldModel.getEdgeIndex({ face.Vertices[1], face.Vertices[2] })];
-            glm::vec3 ecd = edgePoints[oldModel.getEdgeIndex({ face.Vertices[2], face.Vertices[3] })];
-            glm::vec3 eda = edgePoints[oldModel.getEdgeIndex({ face.Vertices[3], face.Vertices[0] })];
-
-            glm::vec3 fabcd = facePoints[fi];
-
-            unsigned aIndex = static_cast<unsigned>(newMesh.Vertices.size());
-            unsigned bIndex = aIndex + 1;
-            unsigned cIndex = aIndex + 2;
-            unsigned dIndex = aIndex + 3;
-
-            unsigned eabIndex = aIndex + 4;
-            unsigned ebcIndex = aIndex + 5;
-            unsigned ecdIndex = aIndex + 6;
-            unsigned edaIndex = aIndex + 7;
-
-            unsigned fabcdIndex = aIndex + 8;
-
-            newMesh.Vertices.push_back({ va });
-            newMesh.Vertices.push_back({ vb });
-            newMesh.Vertices.push_back({ vc });
-            newMesh.Vertices.push_back({ vd });
-            newMesh.Vertices.push_back({ eab });
-            newMesh.Vertices.push_back({ ebc });
-            newMesh.Vertices.push_back({ ecd });
-            newMesh.Vertices.push_back({ eda });
-            newMesh.Vertices.push_back({ fabcd });
-
-            newMesh.Quads.push_back(glm::uvec4(edaIndex, aIndex, eabIndex, fabcdIndex));
-            newMesh.Quads.push_back(glm::uvec4(eabIndex, bIndex, ebcIndex, fabcdIndex));
-            newMesh.Quads.push_back(glm::uvec4(ebcIndex, cIndex, ecdIndex, fabcdIndex));
-            newMesh.Quads.push_back(glm::uvec4(ecdIndex, dIndex, edaIndex, fabcdIndex));
-        }
-        else
-        {
-            glm::vec3 va = oldModel.Vertices[face.Vertices[0]].Position;
-            glm::vec3 vb = oldModel.Vertices[face.Vertices[1]].Position;
-            glm::vec3 vc = oldModel.Vertices[face.Vertices[2]].Position;
-
-            glm::vec3 eab = edgePoints[oldModel.getEdgeIndex({ face.Vertices[0], face.Vertices[1] })];
-            glm::vec3 ebc = edgePoints[oldModel.getEdgeIndex({ face.Vertices[1], face.Vertices[2] })];
-            glm::vec3 eca = edgePoints[oldModel.getEdgeIndex({ face.Vertices[2], face.Vertices[0] })];
-
-            glm::vec3 fabc = facePoints[fi];
-
-            unsigned aIndex = static_cast<unsigned>(newMesh.Vertices.size());
-            unsigned bIndex = aIndex + 1;
-            unsigned cIndex = aIndex + 2;
-
-            unsigned eabIndex = aIndex + 3;
-            unsigned ebcIndex = aIndex + 4;
-            unsigned ecaIndex = aIndex + 5;
-
-            unsigned fabcIndex = aIndex + 6;
-
-            newMesh.Vertices.push_back({ va });
-            newMesh.Vertices.push_back({ vb });
-            newMesh.Vertices.push_back({ vc });
-            newMesh.Vertices.push_back({ eab });
-            newMesh.Vertices.push_back({ ebc });
-            newMesh.Vertices.push_back({ eca });
-            newMesh.Vertices.push_back({ fabc });
-
-            newMesh.Quads.push_back(glm::uvec4(ecaIndex, aIndex, eabIndex, fabcIndex));
-            newMesh.Quads.push_back(glm::uvec4(eabIndex, bIndex, ebcIndex, fabcIndex));
-            newMesh.Quads.push_back(glm::uvec4(ebcIndex, cIndex, ecaIndex, fabcIndex));
-        }
-    }
+std::string Model::vec3ToString(const glm::vec3& vec3)
+{
+    return std::to_string(vec3.x).append("|") + std::to_string(vec3.y).append("|") + std::to_string(vec3.z);
 }
 
 const size_t Model::getVerticesCount(EModelViewType viewType) const
@@ -642,24 +553,6 @@ const size_t Model::getVerticesCount(EModelViewType viewType) const
     return total;
 }
 
-const size_t Model::getTrianglesCount(EModelViewType viewType) const
-{
-    size_t total = 0;
-
-    if (viewType == EModelViewType::EOriginal)
-    {
-        for (const Mesh& mesh : m_meshes)
-            total += mesh.Triangles.size();
-
-        return total;
-    }
-
-    for (const Mesh& mesh : m_subdividedMeshes)
-        total += mesh.Triangles.size();
-
-    return total;
-}
-
 const size_t Model::getQuadsCount(EModelViewType viewType) const
 {
     size_t total = 0;
@@ -676,89 +569,4 @@ const size_t Model::getQuadsCount(EModelViewType viewType) const
         total += mesh.Quads.size();
 
     return total;
-}
-
-const bool Model::isQuads(EModelViewType viewType) const
-{
-    bool total = false;
-
-    if (viewType == EModelViewType::EOriginal)
-    {
-        for (const Mesh& mesh : m_meshes)
-            total = mesh.IsQuads;
-
-        return total;
-    }
-
-    for (const Mesh& mesh : m_subdividedMeshes)
-        total = mesh.IsQuads;
-
-    return total;
-}
-
-void ModelConverter::moveVertex(int vertexIndex, const glm::vec3& newPosition)
-{
-    std::string oldPosition = std::to_string(Vertices[vertexIndex].Position.x) + "|" +
-        std::to_string(Vertices[vertexIndex].Position.y) + "|" +
-        std::to_string(Vertices[vertexIndex].Position.z);
-
-    std::string newPos = std::to_string(newPosition.x) + "|" +
-        std::to_string(newPosition.y) + "|" +
-        std::to_string(newPosition.z);
-
-    m_positionToVertex.erase(oldPosition);
-
-    if (m_positionToVertex.find(newPos) != m_positionToVertex.end())
-    {
-        throw std::exception(
-            "topology error in moving vertex: same position for different vertices");
-    }
-
-    m_positionToVertex[newPos] = vertexIndex;
-    Vertices[vertexIndex].Position = newPosition;
-}
-
-int ModelConverter::getVertexIndex(const glm::vec3& position)
-{
-    std::string pos = std::to_string(position.x) + "|" +
-        std::to_string(position.y) + "|" +
-        std::to_string(position.z);
-
-    auto it = m_positionToVertex.find(pos);
-
-    if (it != m_positionToVertex.end())
-        return it->second;
-
-    int ret = static_cast<int>(Vertices.size());
-
-    VertexRecord newVertexRecord;
-    newVertexRecord.Position = position;
-    Vertices.push_back(newVertexRecord);
-    m_positionToVertex[pos] = ret;
-
-    return ret;
-}
-
-int ModelConverter::getEdgeIndex(const glm::uvec2& vertexPair)
-{
-    glm::uvec2 sortedVertexPair = vertexPair.x < vertexPair.y ? vertexPair : glm::uvec2(vertexPair.y, vertexPair.x);
-    std::string sortedVertexPairStr = vertexPair.x < vertexPair.y ?
-        std::to_string(vertexPair.x) + "|" +
-        std::to_string(vertexPair.y) :
-        std::to_string(vertexPair.y) + "|" +
-        std::to_string(vertexPair.x);
-
-    auto it = m_vertexPairToEdge.find(sortedVertexPairStr);
-    if (it != m_vertexPairToEdge.end())
-        return it->second;
-
-    int ret = static_cast<int>(Edges.size());
-
-    EdgeRecord newEdgeRecord;
-    newEdgeRecord.LowVertex = sortedVertexPair.x;
-    newEdgeRecord.HighVertex = sortedVertexPair.y;
-    Edges.push_back(newEdgeRecord);
-    m_vertexPairToEdge[sortedVertexPairStr] = ret;
-
-    return ret;
 }
