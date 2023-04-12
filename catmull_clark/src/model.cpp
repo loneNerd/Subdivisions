@@ -200,7 +200,7 @@ void Model::processMesh(aiMesh* mesh, const aiScene* scene)
         aiFace face = mesh->mFaces[i];
 
         if (face.mNumIndices != 4)
-            throw std::exception(std::string("Model doesn't have correct number of indices: ").append(std::to_string(face.mNumIndices)).c_str());
+            throw std::exception(std::string("Model doesn't have correct number of indices (need 4): ").append(std::to_string(face.mNumIndices)).c_str());
 
         // retrieve all indices of the face and store them in the indices vector
         newMesh.Quads.emplace_back(glm::uvec4(face.mIndices[0], face.mIndices[1], face.mIndices[2], face.mIndices[3]));
@@ -509,8 +509,6 @@ void Model::applySubdivision(Mesh& oldMesh, Mesh& newMesh)
             vertex.Position = m1 * faceAvg + m2 * edgeAvg + m3 * vertex.Position;
         }
     }
-
-    int test = 0;
 }
 
 int32_t Model::addNewVertex(Mesh& mesh, Vertex& vertex)

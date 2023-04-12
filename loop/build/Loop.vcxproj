@@ -18,43 +18,11 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\engine.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\model.cpp" />
-    <ClCompile Include="..\src\shader.cpp" />
-    <ClCompile Include="..\thirdparty\include\glad.c" />
-    <ClCompile Include="..\thirdparty\include\imgui\imgui.cpp" />
-    <ClCompile Include="..\thirdparty\include\imgui\imgui_draw.cpp" />
-    <ClCompile Include="..\thirdparty\include\imgui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="..\thirdparty\include\imgui\imgui_impl_sdl.cpp" />
-    <ClCompile Include="..\thirdparty\include\imgui\imgui_impl_sdlrenderer.cpp" />
-    <ClCompile Include="..\thirdparty\include\imgui\imgui_tables.cpp" />
-    <ClCompile Include="..\thirdparty\include\imgui\imgui_widgets.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\engine.h" />
-    <ClInclude Include="..\src\model.h" />
-    <ClInclude Include="..\src\shader.h" />
-    <ClInclude Include="..\src\utils.h" />
-    <ClInclude Include="..\thirdparty\include\imgui\imconfig.h" />
-    <ClInclude Include="..\thirdparty\include\imgui\imgui.h" />
-    <ClInclude Include="..\thirdparty\include\imgui\imgui_impl_opengl3.h" />
-    <ClInclude Include="..\thirdparty\include\imgui\imgui_impl_opengl3_loader.h" />
-    <ClInclude Include="..\thirdparty\include\imgui\imgui_impl_sdl.h" />
-    <ClInclude Include="..\thirdparty\include\imgui\imgui_impl_sdlrenderer.h" />
-    <ClInclude Include="..\thirdparty\include\imgui\imgui_internal.h" />
-    <ClInclude Include="..\thirdparty\include\stb_image.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\shaders\fragment.fs" />
-    <None Include="..\src\shaders\vertex.vs" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{2332c2e5-93b2-475d-bc9a-39ec1d520e01}</ProjectGuid>
-    <RootNamespace>CatmullClarkSubdivision</RootNamespace>
+    <ProjectGuid>{3935c5f2-6e4c-437f-8298-c491b8f9460e}</ProjectGuid>
+    <RootNamespace>Loop</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -103,26 +71,26 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</OutDir>
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\Intermediate\</IntDir>
     <ExternalIncludePath>$(SolutionDir)thirdparty\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
     <LibraryPath>$(SolutionDir)thirdparty\libs\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</OutDir>
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\Intermediate\</IntDir>
     <ExternalIncludePath>$(SolutionDir)thirdparty\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
     <LibraryPath>$(SolutionDir)thirdparty\libs\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</OutDir>
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\Intermediate\</IntDir>
     <ExternalIncludePath>$(SolutionDir)thirdparty\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
     <LibraryPath>$(SolutionDir)thirdparty\libs\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</OutDir>
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\Intermediate\</IntDir>
     <ExternalIncludePath>$(SolutionDir)thirdparty\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
     <LibraryPath>$(SolutionDir)thirdparty\libs\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
@@ -132,16 +100,16 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src\;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\;$(SolutionDir)\loop\src\;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\shaders\
-xcopy /Y $(SolutionDir)thirdparty\bins\x86\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\
-xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\resources\</Command>
+      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\shaders\
+xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\resources\
+xcopy /Y $(SolutionDir)thirdparty\bins\x86\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -152,7 +120,7 @@ xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src\;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\;$(SolutionDir)\loop\src\;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -161,9 +129,9 @@ xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\shaders\
-xcopy /Y $(SolutionDir)thirdparty\bins\x86\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\
-xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\resources\</Command>
+      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\shaders\
+xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\resources\
+xcopy /Y $(SolutionDir)thirdparty\bins\x86\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -172,16 +140,16 @@ xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src\;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\;$(SolutionDir)\loop\src\;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\shaders\
-xcopy /Y $(SolutionDir)thirdparty\bins\x64\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\
-xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\resources\</Command>
+      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\shaders\
+xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\resources\
+xcopy /Y $(SolutionDir)thirdparty\bins\x64\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -192,7 +160,7 @@ xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src\;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\;$(SolutionDir)\loop\src\;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -201,11 +169,43 @@ xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\shaders\
-xcopy /Y $(SolutionDir)thirdparty\bins\x64\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\
-xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\resources\</Command>
+      <Command>xcopy /Y /S $(SolutionDir)src\shaders\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\shaders\
+xcopy /Y /S $(SolutionDir)thirdparty\resources\ $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\resources\
+xcopy /Y $(SolutionDir)thirdparty\bins\x64\*.dll $(SolutionDir)bin\$(Platform)\$(Configuration)\Loop\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\shader.cpp" />
+    <ClCompile Include="..\..\thirdparty\include\glad.c" />
+    <ClCompile Include="..\..\thirdparty\include\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\thirdparty\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\thirdparty\include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\..\thirdparty\include\imgui\imgui_impl_sdl.cpp" />
+    <ClCompile Include="..\..\thirdparty\include\imgui\imgui_impl_sdlrenderer.cpp" />
+    <ClCompile Include="..\..\thirdparty\include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\..\thirdparty\include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\src\engine.cpp" />
+    <ClCompile Include="..\src\model.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\shader.h" />
+    <ClInclude Include="..\..\src\utils.h" />
+    <ClInclude Include="..\..\thirdparty\include\imgui\imconfig.h" />
+    <ClInclude Include="..\..\thirdparty\include\imgui\imgui.h" />
+    <ClInclude Include="..\..\thirdparty\include\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\..\thirdparty\include\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="..\..\thirdparty\include\imgui\imgui_impl_sdl.h" />
+    <ClInclude Include="..\..\thirdparty\include\imgui\imgui_impl_sdlrenderer.h" />
+    <ClInclude Include="..\..\thirdparty\include\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\thirdparty\include\stb_image.h" />
+    <ClInclude Include="..\src\engine.h" />
+    <ClInclude Include="..\src\model.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\shaders\fragment.fs" />
+    <None Include="..\..\src\shaders\vertex.vs" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
