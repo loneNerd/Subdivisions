@@ -350,4 +350,4 @@ MigrationBackup/
 .ionide/
 
 # Exclude thirparty folder from ignore list
-!thirdparty/
+!thirdparty/**
